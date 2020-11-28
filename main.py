@@ -1,5 +1,5 @@
 import subprocess
-
+import platform
 
 def ping_ip(ip_address):
     """
@@ -11,7 +11,13 @@ def ping_ip(ip_address):
         * False
         * error output (stderr)
     """
-    reply = subprocess.run(['ping', '-c', '3', '-n', ip_address],
+    if platform.system().lower() == "windows" :
+        reply = subprocess.run(['ping','-n 1', ip_address],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE,
+                               encoding='utf-8')
+    else: 
+        reply = subprocess.run(['ping', '-c', '1', '-n', ip_address],
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE,
                            encoding='utf-8')
