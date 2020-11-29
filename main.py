@@ -13,12 +13,12 @@ def ping_ip(ip_address):
         * error output (stderr)
     """
     if platform.system().lower() == "windows" :
-        reply = subprocess.run(['ping','-n 1', ip_address],
+        reply = subprocess.run(['ping','-n ',str(count), ip_address],
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE,
-                               encoding='utf-8')
+                               encoding='cp866')
     else: 
-        reply = subprocess.run(['ping', '-c', '1', '-n', ip_address],
+        reply = subprocess.run(['ping', '-c', str(count), '-n', ip_address],
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE,
                            encoding='utf-8')
@@ -27,8 +27,8 @@ def ping_ip(ip_address):
     else:
         return False, reply.stderr
 
-print(ping_ip('8.8.8.8'))
-print(ping_ip('a'))
+print(ping_ip('8.8.8.8',1))
+print(ping_ip('a',1))
 
 parser = argparse.ArgumentParser(description='Ping script')
 
@@ -38,5 +38,5 @@ parser.add_argument('-c', action="store", dest="count", default=2, type=int)
 args = parser.parse_args()
 print(args)
 
-rc, message = ping_ip(args.ip)
+rc, message = ping_ip(args.ip,args.count)
 print(message)
