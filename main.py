@@ -1,8 +1,9 @@
 import subprocess
 import platform
 import argparse
+import re
 
-def ping_ip(ip_address):
+def ping_ip(ip_address, count, wait=120):
     """
     Ping IP address and return tuple:
     On success:
@@ -22,21 +23,23 @@ def ping_ip(ip_address):
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE,
                            encoding='utf-8')
+    pink_ms = re.search(r'=\d*[ms,мс]', reply.stdout)
+    if pink_ms:
+        print()
     if reply.returncode == 0:
-        return True, reply.stdout
+        return True, reply.stdout[pink_ms.start() + 1:pink_ms.end() - 1]
     else:
-        return False, reply.stderr
+        return False, wait
 
-print(ping_ip('8.8.8.8',1))
-print(ping_ip('a',1))
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Ping script')
 
-parser = argparse.ArgumentParser(description='Ping script')
+    parser.add_argument('-a', action="store", dest="ip", default='140.82.121.4', type=str)
+    parser.add_argument('-c', action="store", dest="count", default=4, type=int)
+    args = parser.parse_args()
 
-parser.add_argument('-a', action="store", dest="ip")
-parser.add_argument('-c', action="store", dest="count", default=2, type=int)
-
-args = parser.parse_args()
-print(args)
-
-rc, message = ping_ip(args.ip,args.count)
-print(message)
+    go, ms = ping_ip(args.ip, args.count)
+    if go:
+        print(f'Ответ вернулся через {ms} мс')
+    else:
+        print(f'Ответ не вернулся')
