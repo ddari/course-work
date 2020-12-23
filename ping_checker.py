@@ -42,7 +42,7 @@ def list_from_exel(file: str, paper: [str, None]) -> list:
     if paper is None:
         paper = 'Лист1'
     l = []
-    k = 2  # начальный столбец
+    k = 2  # начальная строка
 
     # открытие для чтения
     wb = openpyxl.load_workbook(filename=file+'.xlsx', read_only=True)
