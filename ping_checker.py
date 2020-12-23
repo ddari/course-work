@@ -4,59 +4,59 @@ import argparse
 import re
 import openpyxl
 
-# import pythonping as pig
 
 def ping_ip(ip_address: str, count=1) -> (bool, str):
     """
     Ping IP address and return tuple:
     On success:
         * True
-        * command output (stdout)
+        * ms : str
     On failure:
         * False
-        * error output (stderr)
+        * ''
     """
-    # для разных систем разные кодировки
-    if platform.system().lower() == "windows" :
-        reply = subprocess.run(['ping','-n ',str(count), ip_address],
+    # для разных систем разные запросы
+    if platform.system().lower() == "windows":
+        reply = subprocess.run(['ping', '-n ', str(count), ip_address],
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE,
                                encoding='cp866')
-    else: 
+    else:
         reply = subprocess.run(['ping', '-c', str(count), '-n', ip_address],
-                           stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE,
-                           encoding='utf-8')
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE,
+                               encoding='utf-8')
     # найти ms
     pink_ms = re.search(r'=\d*[ms,мс]', reply.stdout)
-     # reply.returncode
+
     if pink_ms is not None:
         return True, reply.stdout[pink_ms.start() + 1:pink_ms.end() - 1]
     else:
         return False, ''
-    
-def list_from_exel(file, paper) -> list:
+
+
+def list_from_exel(file: str, paper: [str, None]) -> list:
     """
     From the file, where first column is IPs make list of ip
     """
     if paper is None:
         paper = 'Лист1'
     l = []
-    k = 2 # начальный столбец
-    
+    k = 2  # начальный столбец
+
     # открытие для чтения
-    wb = openpyxl.load_workbook(filename=file, read_only=True)
+    wb = openpyxl.load_workbook(filename=file+'.xlsx', read_only=True)
     sheet = wb[paper]
     a = sheet.cell(row=k, column=1).value
     # пока не дойдёт до конца спика в файле добавляет значения
-
     while a is not None:
         l.append(a)
         k += 1
         a = sheet.cell(row=k, column=1).value
     return l
 
-def list_to_ping_list(l: list) -> [(str, str)]:
+
+def list_to_ping_list(l: [list,tuple]) -> [(str, str)]:
     """
     From the list of IP make list of tuple,
     Which is result of ping and
@@ -76,34 +76,35 @@ def list_to_ping_list(l: list) -> [(str, str)]:
             ll.append((i, 'Ошибка соединения'))
     return ll
 
-def print_single_ip(args):
-     """
+
+def print_single_ip(ip):
+    """
     Print result of single ping
     """
-    go, ms = ping_ip(args.ip, args.count)
+    go, ms = ping_ip(ip, 1)
     if go:
         print(f'Ping {ms} мс')
     else:
         print('Ответ не вернулся')
 
 
-def print_many_ip(args):
+def print_many_ip(file, sheet='Лист1'):
     """
     Print result of many pings
     """
-    ip_list = list_from_exel(args.file, args.list)
+    ip_list = list_from_exel(file, sheet)
     ping_list = list_to_ping_list(ip_list)
     for i in range(len(ping_list)):
         print(f'{i + 1}. {ping_list[i][0]} {ping_list[i][1]}')
 
 
-def give_file(args):
+def give_file(fileIn, fileOut, sheet='Лист1'):
     """
     Construct xlsx file where
     First column is IP
     Second is result of program work
     """
-    ip_list = list_from_exel(args.file, args.list)
+    ip_list = list_from_exel(fileIn, sheet)
     ping_list = list_to_ping_list(ip_list)
     wb = openpyxl.Workbook()
     sheet = wb.active
@@ -114,17 +115,17 @@ def give_file(args):
         sheet.cell(row=i + 2, column=1).value = ping_list[i][0]
         sheet.cell(row=i + 2, column=2).value = ping_list[i][1]
     print('Документ успешно сформирован')
-    wb.save(args.out + '.xlsx')
+    wb.save(fileOut + '.xlsx')
 
 
-def repeat(args):
+def repeat(file):
     """
     Ping IP from first column
     And add column of results to the end
     """
-    ip_list = list_from_exel(args.repeat + '.xlsx', None)
+    ip_list = list_from_exel(file, None)
     ping_list = list_to_ping_list(ip_list)
-    wb = openpyxl.load_workbook(filename=args.repeat + '.xlsx')
+    wb = openpyxl.load_workbook(filename=file + '.xlsx')
     sheet = wb['Лист1']
     k = 2
     a = sheet.cell(row=k, column=2).value
@@ -140,16 +141,17 @@ def repeat(args):
         sheet.cell(row=k, column=column).value = ping_list[k - 2][1]
         k += 1
         a = sheet.cell(row=k, column=1).value
-    wb.save(args.repeat + '.xlsx')
+    wb.save(file + '.xlsx')
 
 
-def find_dif(args):
+def find_dif(file):
     """
     Add to file two columns
     One is result of work ping program
     Another is result of average of all pings
     If one of results is not number average result will be 'Ответ не вернулся'
     """
+
     def sred_arf(lt: list):
         sumar = 0
         try:
@@ -159,9 +161,9 @@ def find_dif(args):
             return 'Ответ не вернулся'
         return float(sumar) / len(lt)
 
-    ip_list = list_from_exel(args.dif + '.xlsx', None)
+    ip_list = list_from_exel(file, None)
     ping_list = list_to_ping_list(ip_list)
-    wb = openpyxl.load_workbook(filename=args.dif + '.xlsx')
+    wb = openpyxl.load_workbook(filename=file + '.xlsx')
     sheet = wb['Лист1']
     k = 2
     column = 3
@@ -183,15 +185,15 @@ def find_dif(args):
         k += 1
         a = sheet.cell(row=k, column=1).value
     sheet.cell(row=1, column=column + 1).value = "Среднее арифметическое"
-    wb.save(args.dif + '.xlsx')
+    wb.save(file + '.xlsx')
+
 
 if __name__ == '__main__':
     # для запуска из командной строки с аргументами
     parser = argparse.ArgumentParser(description='Ping script')
-    #одиночная проверка IP
+    # одиночная проверка IP
     parser.add_argument('-a', action="store", dest="ip", type=str)  # '140.82.121.4'
-        # кол-во раз для одиночной проверки
-
+    # кол-во раз для одиночной проверки
     parser.add_argument('-c', action="store", dest="count", default=1, type=int)
     # файл из которого считывать информацию с 2 строчки, поддерживает csv и xlsx
     parser.add_argument('-f', action="store", dest="file", type=str)
@@ -203,26 +205,23 @@ if __name__ == '__main__':
     parser.add_argument('-r', action="store", dest="repeat", type=str)
     # сравнить все прошлые столбцы, добавить 1 и добавить среднее арифметическое
     parser.add_argument('-d', action="store", dest="dif", type=str)
-    
     args = parser.parse_args()
+
     # проверка на наличие различных параметров
     if args.ip:
-        print_single_ip(args)
+        print_single_ip(args.ip)
     if args.file:
-        if '.csv' in args.file or '.xlsx' in args.file:
-            print_single_ip(args)
-       else:
-            print('Недопустимый формат файла')
-   if args.repeat:
-        repeat(args)
+        print_many_ip(args.file, args.list)
+        if args.out:
+            give_file(args.file, args.out, args.list)
+    if args.repeat:
         try:
-            repeat(args)
+            repeat(args.repeat)
         except:
             print('файл не найден или его формат неверный')
-
     if args.dif:
-        find_dif(args)
         try:
-            find_dif(args)
+            find_dif(args.dif)
         except:
             print('файл не найден или его формат неверный')
+    # python ping_cheker.py -a 8.8.8.8 -f pings.xlsx -o out -r out -d out
