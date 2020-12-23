@@ -27,7 +27,7 @@ def ping_ip(ip_address: str, count=1) -> (bool, str):
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE,
                            encoding='utf-8')
-    # print(reply.stdout)
+    # найти ms
     pink_ms = re.search(r'=\d*[ms,мс]', reply.stdout)
      # reply.returncode
     if pink_ms is not None:
@@ -36,13 +36,20 @@ def ping_ip(ip_address: str, count=1) -> (bool, str):
         return False, ''
     
 def list_from_exel(file, paper) -> list:
+    """
+    From the file, where first column is IPs make list of ip
+    """
     if paper is None:
         paper = 'Лист1'
     l = []
-    k = 1
+    k = 2 # начальный столбец
+    
+    # открытие для чтения
     wb = openpyxl.load_workbook(filename=file, read_only=True)
     sheet = wb[paper]
     a = sheet.cell(row=k, column=1).value
+    # пока не дойдёт до конца спика в файле добавляет значения
+
     while a is not None:
         l.append(a)
         k += 1
@@ -50,6 +57,16 @@ def list_from_exel(file, paper) -> list:
     return l
 
 def list_to_ping_list(l: list) -> [(str, str)]:
+    """
+    From the list of IP make list of tuple,
+    Which is result of ping and
+    On success:
+        * IP
+        * ms
+    On failure:
+        * IP
+        * 'Ошибка соединения'
+    """
     ll = []
     for i in l:
         t = ping_ip(i)
@@ -60,6 +77,9 @@ def list_to_ping_list(l: list) -> [(str, str)]:
     return ll
 
 def print_single_ip(args):
+     """
+    Print result of single ping
+    """
     go, ms = ping_ip(args.ip, args.count)
     if go:
         print(f'Ping {ms} мс')
@@ -68,6 +88,9 @@ def print_single_ip(args):
 
 
 def print_many_ip(args):
+    """
+    Print result of many pings
+    """
     ip_list = list_from_exel(args.file, args.list)
     ping_list = list_to_ping_list(ip_list)
     for i in range(len(ping_list)):
@@ -75,6 +98,11 @@ def print_many_ip(args):
 
 
 def give_file(args):
+    """
+    Construct xlsx file where
+    First column is IP
+    Second is result of program work
+    """
     ip_list = list_from_exel(args.file, args.list)
     ping_list = list_to_ping_list(ip_list)
     wb = openpyxl.Workbook()
@@ -90,15 +118,22 @@ def give_file(args):
 
 
 def repeat(args):
+    """
+    Ping IP from first column
+    And add column of results to the end
+    """
     ip_list = list_from_exel(args.repeat + '.xlsx', None)
     ping_list = list_to_ping_list(ip_list)
     wb = openpyxl.load_workbook(filename=args.repeat + '.xlsx')
     sheet = wb['Лист1']
     k = 2
     a = sheet.cell(row=k, column=2).value
+    # перебираем пока не конец строк
     while a is not None:
         column = 2
         b = sheet.cell(row=k, column=column).value
+        # перебираем пока не конец столбцов
+        # Оптимальнее сделать это 1 раз, а не для каждой строчки
         while b is not None:
             column += 1
             b = sheet.cell(row=k, column=column).value
@@ -109,6 +144,12 @@ def repeat(args):
 
 
 def find_dif(args):
+    """
+    Add to file two columns
+    One is result of work ping program
+    Another is result of average of all pings
+    If one of results is not number average result will be 'Ответ не вернулся'
+    """
     def sred_arf(lt: list):
         sumar = 0
         try:
@@ -147,17 +188,24 @@ def find_dif(args):
 if __name__ == '__main__':
     # для запуска из командной строки с аргументами
     parser = argparse.ArgumentParser(description='Ping script')
+    #одиночная проверка IP
     parser.add_argument('-a', action="store", dest="ip", type=str)  # '140.82.121.4'
+        # кол-во раз для одиночной проверки
+
     parser.add_argument('-c', action="store", dest="count", default=1, type=int)
+    # файл из которого считывать информацию с 2 строчки, поддерживает csv и xlsx
     parser.add_argument('-f', action="store", dest="file", type=str)
+    # лист файла для считывания
     parser.add_argument('-l', action="store", dest="list", type=str)
+    # вывод в файл после считывания файла
     parser.add_argument('-o', action="store", dest="out", type=str)
+    # добавить столбец
     parser.add_argument('-r', action="store", dest="repeat", type=str)
+    # сравнить все прошлые столбцы, добавить 1 и добавить среднее арифметическое
     parser.add_argument('-d', action="store", dest="dif", type=str)
     
     args = parser.parse_args()
-    if args.out:
-        give_file(args)
+    # проверка на наличие различных параметров
     if args.ip:
         print_single_ip(args)
     if args.file:
