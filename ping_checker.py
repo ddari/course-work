@@ -42,7 +42,7 @@ def list_from_exel(file: str, paper: [str, None]) -> list:
     if paper is None:
         paper = 'Лист1'
     l = []
-    k = 2  # начальный столбец
+    k = 2  # начальная строка
 
     # открытие для чтения
     wb = openpyxl.load_workbook(filename=file+'.xlsx', read_only=True)
@@ -224,4 +224,3 @@ if __name__ == '__main__':
             find_dif(args.dif)
         except:
             print('файл не найден или его формат неверный')
-    # python ping_cheker.py -a 8.8.8.8 -f pings.xlsx -o out -r out -d out
