@@ -224,4 +224,3 @@ if __name__ == '__main__':
             find_dif(args.dif)
         except:
             print('файл не найден или его формат неверный')
-    # python ping_cheker.py -a 8.8.8.8 -f pings.xlsx -o out -r out -d out
